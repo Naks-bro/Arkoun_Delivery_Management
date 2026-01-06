@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8" />
+  <title>Arkoun Ops Console</title>
+  <style>
+    :root {
+      --bg-main: #0b1727;
+      --bg-elevated: #09111f;
+      --bg-card: #0f1c30;
+      --bg-card-soft: #111f35;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59,130,246,0.12);
+      --accent-strong: #2563eb;
+      --border-subtle: rgba(148,163,184,0.25);
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --shadow-soft: 0 20px 40px rgba(0,0,0,0.45);
+      --radius-lg: 14px;
+      --radius-xl: 18px;
+      --radius-pill: 999px;
+      --transition-fast: 0.18s ease-out;
+      --transition-med: 0.25s ease-out;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020617 52%, #000 100%);
+      color: var(--text-main);
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 28px 28px;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 18px;
+    }
+
+    .brand-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand-title {
+      font-size: 22px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .brand-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .env-pill {
+      padding: 6px 14px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.4);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(15,23,42,0.9);
+      backdrop-filter: blur(24px);
+    }
+
+    .env-pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.18);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2.1fr) minmax(0, 2.7fr);
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, #172554 0, #020617 58%);
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(148,163,184,0.25);
+      box-shadow: var(--shadow-soft);
+      padding: 18px 18px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, rgba(59,130,246,0.18), transparent 55%),
+        radial-gradient(circle at bottom left, rgba(56,189,248,0.16), transparent 56%);
+      mix-blend-mode: screen;
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .panel-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 14px;
+      gap: 8px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #e5e7eb;
+      opacity: 0.9;
+    }
+
+    .panel-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.5);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      white-space: nowrap;
+    }
+
+    hr.divider {
+      border: none;
+      border-top: 1px solid rgba(148,163,184,0.25);
+      margin: 12px 0 14px;
+    }
+
+    /* Left panel – sheet selection + help */
+    .sheet-select-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+    }
+
+    .sheet-select-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    select {
+      flex: 1;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.55);
+      padding: 8px 11px;
+      background: rgba(15,23,42,0.95);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+    }
+
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.55);
+      transform: translateY(-0.5px);
+    }
+
+    .btn {
+      border-radius: 10px;
+      border: 1px solid transparent;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      background: linear-gradient(135deg, #1d4ed8, #22c55e);
+      color: white;
+      transition: background var(--transition-med), transform var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast), border-color var(--transition-fast);
+      white-space: nowrap;
+    }
+
+    .btn:hover:not(.btn-disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(15,23,42,0.6);
+      background: linear-gradient(135deg, #2563eb, #22c55e);
+    }
+
+    .btn-secondary {
+      background: rgba(15,23,42,0.6);
+      border-color: rgba(148,163,184,0.6);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover:not(.btn-disabled) {
+      background: rgba(15,23,42,0.9);
+      border-color: var(--accent);
+      box-shadow: 0 8px 18px rgba(15,23,42,0.7);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: rgba(148,163,184,0.4);
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover:not(.btn-disabled) {
+      color: var(--text-main);
+      border-color: var(--accent);
+      background: rgba(15,23,42,0.5);
+    }
+
+    .btn-disabled {
+      opacity: 0.45;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .pill-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 4px;
+      font-size: 11px;
+    }
+
+    .pill-meta span {
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.35);
+      padding: 3px 9px;
+      color: var(--text-muted);
+      background: rgba(15,23,42,0.6);
+    }
+
+    .help-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr);
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .help-card {
+      background: rgba(15,23,42,0.75);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148,163,184,0.3);
+      padding: 10px 11px;
+    }
+
+    .help-title {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .help-list {
+      margin: 0;
+      padding-left: 15px;
+    }
+
+    .help-list li {
+      margin-bottom: 2px;
+    }
+
+    /* Notepad block */
+    .notes-block {
+      margin-top: 12px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148,163,184,0.45);
+      background: rgba(15,23,42,0.85);
+      padding: 9px 11px 10px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .notes-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .notes-title {
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .notes-sub {
+      margin: 0;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .notes-textarea {
+      width: 100%;
+      min-height: 60px;
+      max-height: 140px;
+      resize: vertical;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.5);
+      background: rgba(15,23,42,0.9);
+      color: var(--text-main);
+      padding: 7px 9px;
+      font-size: 12px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      outline: none;
+      box-sizing: border-box;
+    }
+
+    .notes-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.5);
+    }
+
+    .notes-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .notes-status {
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.9;
+    }
+
+    .notes-list {
+      margin-top: 4px;
+      max-height: 180px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .note-card {
+      border-radius: 9px;
+      border: 1px solid rgba(51,65,85,0.9);
+      background: rgba(15,23,42,0.95);
+      padding: 6px 8px 6px;
+      font-size: 11.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .note-text {
+      color: var(--text-main);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .note-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .note-timestamp {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .note-delete-btn {
+      font-size: 10px;
+      padding: 3px 7px;
+    }
+
+    /* Search input */
+    .search-input {
+      flex: 1;
+      border-radius: 10px;
+      border: 1px solid rgba(148,163,184,0.55);
+      padding: 7px 10px;
+      background: rgba(15,23,42,0.95);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border-color var(--transition-fast),
+                  box-shadow var(--transition-fast),
+                  background var(--transition-fast),
+                  transform var(--transition-fast);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-muted);
+      opacity: 0.75;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(59,130,246,0.55);
+      transform: translateY(-0.5px);
+    }
+
+    /* Right panel – actions + status + history */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .action-card {
+      background: rgba(15,23,42,0.86);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148,163,184,0.35);
+      padding: 11px 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, rgba(59,130,246,0.15), transparent 55%);
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+      pointer-events: none;
+    }
+
+    .action-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .action-title {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .action-tag {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      border-radius: var(--radius-pill);
+      padding: 2px 7px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: rgba(15,23,42,0.85);
+      white-space: nowrap;
+    }
+
+    .action-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .action-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .metric-chip {
+      font-size: 11px;
+      color: var(--text-muted);
+      border-radius: var(--radius-pill);
+      padding: 2px 8px;
+      border: 1px solid rgba(148,163,184,0.35);
+      background: rgba(15,23,42,0.9);
+      white-space: nowrap;
+    }
+
+    .action-card:hover {
+      border-color: rgba(59,130,246,0.9);
+      box-shadow: 0 12px 26px rgba(0,0,0,0.75);
+      transform: translateY(-1px);
+      background: rgba(15,23,42,0.96);
+    }
+
+    .action-card:hover::before {
+      opacity: 1;
+    }
+
+    .action-card.disabled {
+      opacity: 0.55;
+      transform: none;
+      box-shadow: none;
+      cursor: default;
+    }
+
+    .action-card.disabled::before {
+      opacity: 0;
+    }
+
+    .status-block {
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148,163,184,0.32);
+      background: rgba(15,23,42,0.93);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+    }
+
+    .status-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: var(--text-muted);
+    }
+
+    .status-pill {
+      font-size: 11px;
+      border-radius: var(--radius-pill);
+      padding: 3px 9px;
+      border: 1px solid rgba(148,163,184,0.5);
+      background: rgba(15,23,42,0.85);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.28);
+    }
+
+    .status-text {
+      min-height: 18px;
+      color: var(--text-main);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .status-text.muted {
+      color: var(--text-muted);
+    }
+
+    .status-text.success {
+      color: var(--success);
+    }
+
+    .status-text.error {
+      color: var(--danger);
+    }
+
+    .status-raw {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+      background: #020617;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(15,23,42,1);
+      color: #9ca3af;
+      max-height: 160px;
+      overflow: auto;
+      margin-top: 4px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Loading bar */
+    .loading-bar-wrapper {
+      margin-top: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(30,64,175,0.7);
+      overflow: hidden;
+      display: none;
+    }
+
+    .loading-bar {
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(59,130,246,0.2), rgba(59,130,246,0.9), rgba(59,130,246,0.2));
+      animation: loadingSlide 1s infinite ease-in-out;
+    }
+
+    @keyframes loadingSlide {
+      0%   { transform: translateX(-120%); }
+      100% { transform: translateX(260%); }
+    }
+
+    .history-block {
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(148,163,184,0.28);
+      background: rgba(15,23,42,0.9);
+      padding: 9px 11px 9px;
+      font-size: 11px;
+    }
+
+    .history-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .history-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+
+    .history-table-wrap {
+      max-height: 130px;
+      overflow: auto;
+      border-radius: 7px;
+      border: 1px solid rgba(31,41,55,0.9);
+      background: #020617;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+
+    thead {
+      background: rgba(15,23,42,0.96);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    th, td {
+      padding: 5px 7px;
+      text-align: left;
+      border-bottom: 1px solid rgba(31,41,55,0.95);
+      white-space: nowrap;
+    }
+
+    th {
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    td {
+      color: var(--text-main);
+    }
+
+    .col-op {
+      width: 104px;
+    }
+    .col-status {
+      width: 82px;
+    }
+    .col-time {
+      width: 112px;
+    }
+    .col-message {
+      min-width: 180px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .badge-status-ok {
+      color: #22c55e;
+    }
+    .badge-status-error {
+      color: #ef4444;
+    }
+
+    /* Small screen fallback */
+    @media (max-width: 960px) {
+      .app-shell {
+        padding: 16px;
+      }
+      .layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 🌿 Welcome / Loading Screen -->
+<div id="welcomeScreen"
+     style="
+       position:fixed;
+       inset:0;
+       background:radial-gradient(circle at top,#0b1727,#000);
+       z-index:9999;
+       display:flex;
+       align-items:center;
+       justify-content:center;
+     ">
+
+  <div style="text-align:center;max-width:520px;padding:24px;">
+    <h2 style="margin:0 0 12px;font-size:26px;letter-spacing:.04em;">
+      🥬 Arkoun Ops Console
+    </h2>
+
+    <div id="welcomeFact"
+         style="
+           font-size:15px;
+           font-style:italic;
+           color:#22c55e;
+           margin:20px 0;
+           min-height:48px;
+         ">
+      Preparing fresh operations…
+    </div>
+
+    <div style="font-size:13px;color:#9ca3af;">
+      Scanning order folders & ops sheets…
+    </div>
+  </div>
+</div>
+
+<div class="app-shell" id="appShell" style="display:none;">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="brand-block">
+        <div class="brand-title">Arkoun Farms Operational Console</div>
+        <div class="brand-sub">
+          Central dashboard for daily order sheets, vendor allocations, delivery routes and ops summaries.
+        </div>
+      </div>
+      <div class="env-pill">
+        <span class="env-pill-dot"></span>
+        <span id="envLabel">Live Ops Workspace</span>
+      </div>
+    </div>
+
+    <div class="layout">
+      <!-- LEFT: Sheet selection + quick help -->
+      <section class="panel">
+        <div class="panel-inner">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Order Sheet Selection</div>
+              <div class="panel-subtitle">
+                Choose the source Excel or existing ops sheet you want to work with.
+              </div>
+            </div>
+            <span class="tag" id="dateTag"></span>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="sheet-select-row">
+            <label for="fileSelect" class="field-label">Source order file</label>
+
+            <div class="sheet-select-wrap">
+              <input
+                id="fileSearch"
+                type="text"
+                class="search-input"
+                placeholder="Search orders_ or ops_ by name…"
+              />
+            </div>
+
+            <div class="sheet-select-wrap">
+              <select id="fileSelect">
+                <option value="">Loading order sheets...</option>
+              </select>
+              <button class="btn btn-secondary" id="refreshBtn" type="button">Reload</button>
+            </div>
+
+            <div class="pill-meta" id="fileMeta">
+              <span>File: not selected</span>
+              <span>Type: –</span>
+            </div>
+          </div>
+
+          <div class="help-grid">
+            <div class="help-card">
+              <div class="help-title">First time setup (once per client)</div>
+              <ul class="help-list">
+                <li>Keep everything under the same root folder:
+                  <strong>Arkoun Farms Clientsheets</strong>.
+                </li>
+                <li>
+                  ⚠️ Use <strong>Operational_ARKOUN</strong> only for fixed reference files:
+                  <em>Product weight</em>, <em>Vendor_Product_Mapping</em>,
+                  <em>salad breaker</em> and <em>pincodes</em>.
+                  <strong>Change this folder or these files only with developer guidance.</strong>
+                </li>
+
+                <li>For daily orders, create a year folder (e.g.
+                  <strong>2025</strong>) and inside it month folders named
+                  <strong>Orders_Month</strong>, for example
+                  <strong>Orders_October</strong>, <strong>Orders_September</strong>, etc.
+                </li>
+                <li>Save WooCommerce exports into the correct month folder with file
+                  names like:
+                  <strong>orders_YYYY-MM-DD_HH-MM-SS.xlsx</strong>
+                  (for example: <em>orders_2025-10-17_06-00-00.xlsx</em>).
+                </li>
+                <li>When you run “Convert to Ops”, the console creates a matching
+                  <strong>ops_YYYY-MM-DD_HH-MM-SS</strong> Google Sheet in the
+                  <em>same</em> month folder as the source Excel. Keep this folder
+                  structure intact so all other steps work correctly.
+                </li>
+              </ul>
+            </div>
+
+            <div class="help-card">
+              <div class="help-title">Daily run (whenever there are orders)</div>
+              <ul class="help-list">
+                <li>Use the search bar to find today’s <strong>orders_</strong> Excel
+                  or an existing <strong>ops_</strong> workbook.</li>
+                <li><strong>Step 1 – Convert to Ops:</strong> Converts Excel → ops_ Google Sheet
+                  and sets up the 4 standard tabs.</li>
+                <li><strong>Step 2 – Vendor Orders:</strong> Splits “Orders List” by vendor with
+                  item-wise quantities and WhatsApp-ready text.</li>
+                <li><strong>Step 3 – Delivery Routes:</strong> Uses weights + pincodes to build
+                  zone-wise delivery routes for riders.</li>
+                <li><strong>Step 4 – Summary:</strong> Generates totals for procurement, delivery,
+                  revenue and order count for end-of-day review.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="notes-block">
+            <div class="notes-header-row">
+              <div class="notes-title">Ops notepad</div>
+              <button class="btn btn-ghost note-delete-btn"
+                      type="button"
+                      onclick="clearNotes()">
+                Clear all
+              </button>
+            </div>
+            <p class="notes-sub">
+              Quick scratchpad for today’s ops – issues, rider notes, vendor exceptions, etc.
+              Notes stay on this browser only.
+            </p>
+            <textarea id="opsNotes" class="notes-textarea"
+                      placeholder="Example: Adil short on feta, use backup vendor for Zone 2…"></textarea>
+            <div class="notes-footer-row">
+              <button class="btn btn-secondary" type="button" onclick="saveNotes()">
+                Save note
+              </button>
+              <span id="notesStatus" class="notes-status">No notes yet.</span>
+            </div>
+            <div id="notesList" class="notes-list">
+              <!-- dynamic note cards -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- RIGHT: Actions + status + history -->
+      <section class="panel">
+        <div class="panel-inner">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Operations Control</div>
+              <div class="panel-subtitle">
+                Trigger the core Arkoun processes against the selected file.
+              </div>
+            </div>
+            <span class="tag" id="runStateTag">Idle</span>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="actions-grid">
+            <div class="action-card" id="card-convert">
+              <div class="action-card-header">
+                <div class="action-title">Convert to Ops</div>
+                <div class="action-tag">Step 1 · Structure</div>
+              </div>
+              <div class="action-desc">
+                Converts the daily Excel order export into an ops_ Google Sheet, creates
+                standardized tabs and prepares “Orders List” for downstream processing.
+              </div>
+              <div class="action-footer">
+                <button class="btn btn-ghost" type="button" onclick="runOperation('convert')">Run</button>
+                <div class="metric-chip">Output: ops_ sheet with 4 tabs</div>
+              </div>
+            </div>
+
+            <div class="action-card" id="card-vendor">
+              <div class="action-card-header">
+                <div class="action-title">Vendor Orders</div>
+                <div class="action-tag">Step 2 · Split</div>
+              </div>
+              <div class="action-desc">
+                Builds vendor-wise order tables from “Orders List”, grouping products, quantities
+                and pricing per supplier in a clean dispatch format.
+              </div>
+              <div class="action-footer">
+                <button class="btn btn-ghost" type="button" onclick="runOperation('vendor')">Run</button>
+                <div class="metric-chip">Output: vendor allocation sheet</div>
+              </div>
+            </div>
+
+            <div class="action-card" id="card-routes">
+              <div class="action-card-header">
+                <div class="action-title">Delivery Routes</div>
+                <div class="action-tag">Step 3 · Route</div>
+              </div>
+              <div class="action-desc">
+                Uses product weights and pincode zones to build hub-optimised delivery routes,
+                constrained by weight and stop limits, ready for riders.
+              </div>
+            <div class="action-footer" style="gap:8px;">
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn btn-ghost" type="button" onclick="runOperation('routes')">Run</button>
+
+                <!-- ✅ Mini Map button -->
+                <button class="btn btn-secondary"
+                        type="button"
+                        style="font-size:10px;padding:6px 8px;border-radius:10px;"
+                        onclick="openRoutesMap()">
+                  Map
+                </button>
+              </div>
+
+              <div class="metric-chip">Output: “Delivery Routes” tab</div>
+            </div>
+</div>
+
+            <div class="action-card" id="card-summary">
+              <div class="action-card-header">
+                <div class="action-title">Generate Summary</div>
+                <div class="action-tag">Step 4 · Review</div>
+              </div>
+              <div class="action-desc">
+                Aggregates key metrics from the ops workbook into a management-level summary
+                for billing, reconciliation and performance tracking.
+              </div>
+              <div class="action-footer">
+                <button class="btn btn-ghost" type="button" onclick="runOperation('summary')">Run</button>
+                <div class="metric-chip">Output: summary metrics & totals</div>
+              </div>
+            </div>
+          </div>
+                    </div>
+
+
+          <div class="status-block">
+            <div class="status-header-row">
+              <div class="status-label">Current status</div>
+              <div class="status-pill" id="statusPill">
+                <span class="status-pill-dot" id="statusDot"></span>
+                <span id="statusPillText">Idle</span>
+              </div>
+            </div>
+            <div id="statusText" class="status-text muted">
+              Select a file on the left, then choose an operation above.
+            </div>
+            <div id="loadingBar" class="loading-bar-wrapper">
+              <div class="loading-bar"></div>
+            </div>
+            <div id="statusRaw" class="status-raw" style="display:none;"></div>
+          </div>
+
+          <div class="history-block">
+            <div class="history-header-row">
+              <div class="history-title">Recent operations</div>
+              <button class="btn btn-ghost" type="button" style="font-size:10px;padding:3px 7px;" onclick="clearHistory()">Clear</button>
+            </div>
+            <div class="history-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th class="col-op">Operation</th>
+                    <th class="col-status">Status</th>
+                    <th class="col-time">Time</th>
+                    <th class="col-message">Message</th>
+                  </tr>
+                </thead>
+                <tbody id="historyBody">
+                  <tr>
+                    <td colspan="4" style="text-align:center;color:#6b7280;">No operations yet.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    let currentFileId = "";
+    let currentFileName = "";
+    let isRunning = false;
+    let allFiles = [];
+    let notes = [];
+    const NOTES_KEY = "arkoun_ops_console_notes_v2";
+
+let WEBAPP_URL = "";
+/* 🌱 Welcome screen logic */
+
+const veggieFacts = [
+  "Spinach loses up to 50% of Vitamin C within 24 hours if unrefrigerated 🥬",
+  "Lettuce is 95% water — freshness directly affects crunch 🥗",
+  "Cut vegetables oxidize faster; prep timing matters ⏱️",
+  "Leafy greens respire after harvest — cold slows spoilage ❄️",
+  "Arugula turns bitter when stored above 5°C 🌡️",
+  "Washing greens twice extends shelf life significantly 💧"
+];
+
+let factTimer = null;
+let factIndex = 0;
+
+function startWelcomeFacts() {
+  const el = document.getElementById("welcomeFact");
+  if (!el) return;
+
+  el.textContent = veggieFacts[0];
+
+  factTimer = setInterval(() => {
+    factIndex = (factIndex + 1) % veggieFacts.length;
+    el.textContent = veggieFacts[factIndex];
+  }, 3200);
+}
+
+function hideWelcomeScreen() {
+  const w = document.getElementById("welcomeScreen");
+  const app = document.getElementById("appShell");
+
+  if (factTimer) clearInterval(factTimer);
+
+  if (w) w.style.display = "none";
+  if (app) app.style.display = "block";
+}
+
+function initDashboard() {
+  startWelcomeFacts();   // 👈 ADD
+  setTodayTag();
+  loadFiles();           // welcome stays until this finishes
+  loadNotesFromStorage();
+
+  google.script.run
+    .withSuccessHandler(function(url) {
+      WEBAPP_URL = url || "";
+    })
+    .withFailureHandler(function() {
+      WEBAPP_URL = "";
+    })
+    .getWebAppUrl();
+}
+
+
+
+    function setTodayTag() {
+      const tag = document.getElementById("dateTag");
+      const now = new Date();
+      const opts = { year: "numeric", month: "short", day: "2-digit" };
+      tag.textContent = now.toLocaleDateString(undefined, opts);
+    }
+
+    function setLoading(isLoading) {
+      const bar = document.getElementById("loadingBar");
+      if (!bar) return;
+      bar.style.display = isLoading ? "block" : "none";
+    }
+
+    function loadFiles() {
+      const select = document.getElementById("fileSelect");
+      const meta = document.getElementById("fileMeta");
+      const refreshBtn = document.getElementById("refreshBtn");
+      const searchInput = document.getElementById("fileSearch");
+
+      if (searchInput) {
+        searchInput.value = "";
+        searchInput.disabled = true;
+      }
+
+      select.innerHTML = "";
+      const opt = document.createElement("option");
+      opt.textContent = "Scanning folders for files...";
+      opt.value = "";
+      select.appendChild(opt);
+      select.disabled = true;
+      refreshBtn.classList.add("btn-disabled");
+
+      setLoading(true);
+      updateStatus("Scanning client folders for order and ops files… please be patient.", "info");
+
+      google.script.run
+        .withSuccessHandler(function(list) {
+          allFiles = list || [];
+          setLoading(false);
+
+          if (!allFiles.length) {
+
+            select.innerHTML = "";
+            const o = document.createElement("option");
+            o.value = "";
+            o.textContent = "No Excel / Sheet files found under client sheets.";
+            select.appendChild(o);
+            select.disabled = true;
+            meta.innerHTML = "<span>File: none</span><span>Type: –</span>";
+            updateStatus(
+              "No eligible files found. Place your orders_ Excel or ops_ sheet inside the client folder tree.",
+              "error"
+            );
+            lockActions(true);
+            if (searchInput) searchInput.disabled = true;
+            return;
+
+          }
+
+          // Sort ops_ first, then by name
+          allFiles.sort(function(a, b) {
+            const aIsOps = /^ops_/i.test(a.name);
+            const bIsOps = /^ops_/i.test(b.name);
+            if (aIsOps && !bIsOps) return -1;
+            if (!aIsOps && bIsOps) return 1;
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+          });
+
+          renderFileOptions(allFiles);
+
+          select.disabled = false;
+          refreshBtn.classList.remove("btn-disabled");
+          if (searchInput) searchInput.disabled = false;
+          updateFileMeta();
+          lockActions(false);
+          updateStatus(
+            "Search and select the file you want to run, then trigger one of the operations.",
+            "info"
+          );                        hideWelcomeScreen();
+
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          select.innerHTML = "";
+          const o = document.createElement("option");
+          o.value = "";
+          o.textContent = "Error loading files.";
+          select.appendChild(o);
+          select.disabled = true;
+          refreshBtn.classList.remove("btn-disabled");
+          meta.innerHTML = "<span>File: error</span><span>Type: –</span>";
+          lockActions(true);
+          updateStatus(
+            "Error loading file list: " + (err && err.message ? err.message : err),
+            "error"
+          );
+          if (searchInput) searchInput.disabled = true;
+        })
+        .listOpsFiles();
+    }
+
+    function renderFileOptions(files) {
+      const select = document.getElementById("fileSelect");
+      const meta = document.getElementById("fileMeta");
+      select.innerHTML = "";
+
+      if (!files || !files.length) {
+        const o = document.createElement("option");
+        o.value = "";
+        o.textContent = "No files match the current search.";
+        select.appendChild(o);
+        select.disabled = true;
+        if (meta) {
+          meta.innerHTML = "<span>File: none</span><span>Type: –</span>";
+        }
+        currentFileId = "";
+        currentFileName = "";
+        lockActions(true);
+        return;
+      }
+
+      files.forEach(function(f, index) {
+        const option = document.createElement("option");
+        option.value = f.id;
+        option.textContent = /^ops_/i.test(f.name) ? f.name + "  (ops)" : f.name;
+        select.appendChild(option);
+        if (index === 0) {
+          currentFileId = f.id;
+          currentFileName = f.name;
+        }
+      });
+
+      select.disabled = false;
+      lockActions(false);
+      updateFileMeta();
+    }
+
+    function updateFileMeta() {
+      const sel = document.getElementById("fileSelect");
+      const meta = document.getElementById("fileMeta");
+      const idx = sel.selectedIndex;
+      if (idx < 0 || !sel.value) {
+        currentFileId = "";
+        currentFileName = "";
+        meta.innerHTML = "<span>File: not selected</span><span>Type: –</span>";
+        lockActions(true);
+        return;
+      }
+      const name = sel.options[idx].textContent;
+      currentFileId = sel.value;
+      currentFileName = name;
+      const type = /^ops_/i.test(name) ? "Ops Google Sheet" :
+                   name.toLowerCase().endsWith(".xlsx") ? "Excel source" :
+                   "Google Sheet";
+
+      meta.innerHTML = "<span>File: " + name + "</span><span>Type: " + type + "</span>";
+      lockActions(false);
+    }
+
+    document.getElementById("fileSelect").addEventListener("change", function() {
+      updateFileMeta();
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", function() {
+      if (isRunning) return;
+      loadFiles();
+    });
+
+    const searchInputEl = document.getElementById("fileSearch");
+    if (searchInputEl) {
+      searchInputEl.addEventListener("input", function() {
+        if (!allFiles || !allFiles.length) return;
+        const q = this.value.trim().toLowerCase();
+        if (!q) {
+          renderFileOptions(allFiles);
+          return;
+        }
+        const filtered = allFiles.filter(function(f) {
+          return f.name.toLowerCase().includes(q);
+        });
+        renderFileOptions(filtered);
+      });
+    }
+
+    function lockActions(lock) {
+      const cards = [
+        document.getElementById("card-convert"),
+        document.getElementById("card-vendor"),
+        document.getElementById("card-routes"),
+        document.getElementById("card-summary")
+      ];
+      cards.forEach(function(c) {
+        if (!c) return;
+        if (lock) c.classList.add("disabled");
+        else c.classList.remove("disabled");
+        const btn = c.querySelector("button");
+        if (btn) {
+          if (lock) btn.classList.add("btn-disabled");
+          else btn.classList.remove("btn-disabled");
+        }
+      });
+    }
+
+function runOperation(kind) {
+  if (isRunning) return;
+
+  if (!currentFileId) {
+    updateStatus("Select a file on the left before running an operation.", "error");
+    return;
+  }
+
+  let fnName, label;
+  if (kind === "convert") {
+    fnName = "convertToOps";
+    label = "Convert to Ops";
+  } else if (kind === "vendor") {
+    fnName = "populateVendors";
+    label = "Vendor Orders";
+  } else if (kind === "routes") {
+    fnName = "buildRoutes";
+    label = "Delivery Routes";
+  } else if (kind === "summary") {
+    fnName = "generateSummary";
+    label = "Generate Summary";
+  } else {
+    return;
+  }
+
+  isRunning = true;
+  lockActions(true);
+  setRunState("Running " + label);
+  setLoading(true);
+  const start = new Date();
+
+  updateStatus(label + " started for file: " + currentFileName + "… please wait.", "info");
+
+google.script.run
+  .withSuccessHandler(function(res) {
+    const dur = (new Date() - start) / 1000;
+    isRunning = false;
+    lockActions(false);
+    setRunState("Idle");
+    setLoading(false);
+
+    let msg = "";
+    let opsUrlToOpen = "";
+
+    if (res && typeof res === "object") {
+      msg = res.message || ("Completed in " + dur.toFixed(1) + "s");
+      opsUrlToOpen = res.opsSheetUrl || "";
+    } else {
+      msg = (res || "").toString();
+    }
+
+    updateStatus(label + " completed in " + dur.toFixed(1) + "s", "success", msg);
+    appendHistory(label, "Success", dur, msg);
+
+    // ✅ open ops sheet if backend returned it
+    if (opsUrlToOpen) window.open(opsUrlToOpen, "_blank");
+
+    // ✅ open map only after routes success
+if (kind === "routes") {
+  const mapFileId =
+    (res && res.opsSheetId) ? res.opsSheetId : currentFileId;
+
+  if (WEBAPP_URL) {
+    const mapUrl = WEBAPP_URL + "?page=map&fileId=" + encodeURIComponent(mapFileId);
+    window.open(mapUrl, "_blank");
+  } else {
+    updateStatus("Routes done, but WEBAPP_URL missing. Click Map manually.", "info");
+  }
+}
+
+
+  })
+  .withFailureHandler(function(err) {
+    const dur = (new Date() - start) / 1000;
+    isRunning = false;
+    lockActions(false);
+    setRunState("Idle");
+    setLoading(false);
+
+    const msg = err && err.message ? err.message : String(err);
+    updateStatus(label + " failed in " + dur.toFixed(1) + "s: " + msg, "error");
+    appendHistory(label, "Error", dur, msg);
+  })[fnName](currentFileId);
+}
+
+
+    function setRunState(text) {
+      const tag = document.getElementById("runStateTag");
+      tag.textContent = text;
+    }
+
+    function updateStatus(message, mode, raw) {
+      const statusText = document.getElementById("statusText");
+      const pill = document.getElementById("statusPill");
+      const pillText = document.getElementById("statusPillText");
+      const dot = document.getElementById("statusDot");
+      const rawBox = document.getElementById("statusRaw");
+
+      statusText.textContent = message || "";
+      statusText.classList.remove("muted", "success", "error");
+
+      if (mode === "success") {
+        statusText.classList.add("success");
+        pillText.textContent = "Completed";
+        pill.style.borderColor = "rgba(34,197,94,0.65)";
+        dot.style.background = "#22c55e";
+        dot.style.boxShadow = "0 0 0 4px rgba(34,197,94,0.25)";
+      } else if (mode === "error") {
+        statusText.classList.add("error");
+        pillText.textContent = "Error";
+        pill.style.borderColor = "rgba(239,68,68,0.75)";
+        dot.style.background = "#ef4444";
+        dot.style.boxShadow = "0 0 0 4px rgba(239,68,68,0.24)";
+      } else if (mode === "info") {
+        statusText.classList.add("muted");
+        pillText.textContent = "Active";
+        pill.style.borderColor = "rgba(148,163,184,0.7)";
+        dot.style.background = "#3b82f6";
+        dot.style.boxShadow = "0 0 0 4px rgba(59,130,246,0.28)";
+      } else {
+        statusText.classList.add("muted");
+        pillText.textContent = "Idle";
+        pill.style.borderColor = "rgba(148,163,184,0.5)";
+        dot.style.background = "#3b82f6";
+        dot.style.boxShadow = "0 0 0 4px rgba(59,130,246,0.28)";
+      }
+
+      if (raw) {
+        rawBox.style.display = "block";
+        rawBox.textContent = typeof raw === "string" ? raw : JSON.stringify(raw, null, 2);
+      } else {
+        rawBox.style.display = "none";
+        rawBox.textContent = "";
+      }
+    }
+
+    function appendHistory(operation, status, durationSec, message) {
+      const tbody = document.getElementById("historyBody");
+
+      if (tbody.children.length === 1 &&
+          tbody.children[0].children.length === 1) {
+        tbody.innerHTML = "";
+      }
+
+      const tr = document.createElement("tr");
+
+      const tdOp = document.createElement("td");
+      tdOp.className = "col-op";
+      tdOp.textContent = operation;
+
+      const tdStatus = document.createElement("td");
+      tdStatus.className = "col-status";
+      tdStatus.textContent = status;
+      tdStatus.classList.add(status === "Success" ? "badge-status-ok" : "badge-status-error");
+
+      const tdTime = document.createElement("td");
+      tdTime.className = "col-time";
+      const now = new Date();
+      tdTime.textContent =
+        now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) +
+        " (" + durationSec.toFixed(1) + "s)";
+
+      const tdMsg = document.createElement("td");
+      tdMsg.className = "col-message";
+      tdMsg.title = message || "";
+      tdMsg.textContent = (message || "").length > 90
+        ? message.slice(0, 90) + "…"
+        : (message || "");
+
+      tr.appendChild(tdOp);
+      tr.appendChild(tdStatus);
+      tr.appendChild(tdTime);
+      tr.appendChild(tdMsg);
+
+      tbody.insertBefore(tr, tbody.firstChild);
+    }
+
+    function clearHistory() {
+      const tbody = document.getElementById("historyBody");
+      tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align:center;color:#6b7280;\">History cleared.</td></tr>";
+    }
+
+    /* Notes logic */
+
+    function loadNotesFromStorage() {
+      try {
+        const status = document.getElementById("notesStatus");
+        const stored = window.localStorage ? localStorage.getItem(NOTES_KEY) : null;
+        if (stored) {
+          try {
+            notes = JSON.parse(stored) || [];
+          } catch (e) {
+            notes = [];
+          }
+        } else {
+          notes = [];
+        }
+        renderNotes();
+        if (status) {
+          status.textContent = notes.length
+            ? "Loaded " + notes.length + " note" + (notes.length > 1 ? "s." : ".")
+            : "No notes yet.";
+        }
+      } catch (e) {
+        notes = [];
+        renderNotes();
+        const status = document.getElementById("notesStatus");
+        if (status) {
+          status.textContent = "Could not load notes (browser storage blocked).";
+        }
+      }
+    }
+
+    function saveNotes() {
+      const input = document.getElementById("opsNotes");
+      const status = document.getElementById("notesStatus");
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) {
+        if (status) status.textContent = "Write something before saving.";
+        return;
+      }
+      const now = new Date();
+      const note = {
+        id: "n_" + now.getTime() + "_" + Math.floor(Math.random() * 10000),
+        text: text,
+        ts: now.toISOString()
+      };
+      notes.unshift(note);
+      input.value = "";
+      persistNotes();
+      renderNotes();
+      if (status) {
+        status.textContent = "Note saved at " + now.toLocaleTimeString();
+      }
+    }
+
+    function deleteNote(noteId) {
+      notes = notes.filter(function(n) { return n.id !== noteId; });
+      persistNotes();
+      renderNotes();
+      const status = document.getElementById("notesStatus");
+      if (status) {
+        status.textContent = notes.length
+          ? "Note deleted. " + notes.length + " remaining."
+          : "All notes cleared.";
+      }
+    }
+
+    function clearNotes() {
+      notes = [];
+      persistNotes();
+      renderNotes();
+      const input = document.getElementById("opsNotes");
+      if (input) input.value = "";
+      const status = document.getElementById("notesStatus");
+      if (status) {
+        status.textContent = "All notes cleared.";
+      }
+    }
+
+    function persistNotes() {
+      try {
+        if (window.localStorage) {
+          localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
+    }
+
+    function renderNotes() {
+      const listEl = document.getElementById("notesList");
+      if (!listEl) return;
+      listEl.innerHTML = "";
+      if (!notes.length) {
+        const empty = document.createElement("div");
+        empty.className = "note-card";
+        const span = document.createElement("div");
+        span.className = "note-text";
+        span.textContent = "No saved ops notes. Use the box above to add one.";
+        empty.appendChild(span);
+        listEl.appendChild(empty);
+        return;
+      }
+
+      notes.forEach(function(note) {
+        const card = document.createElement("div");
+        card.className = "note-card";
+
+        const textDiv = document.createElement("div");
+        textDiv.className = "note-text";
+        textDiv.textContent = note.text;
+
+        const metaRow = document.createElement("div");
+        metaRow.className = "note-meta-row";
+
+        const tsSpan = document.createElement("span");
+        tsSpan.className = "note-timestamp";
+        const dt = new Date(note.ts);
+        tsSpan.textContent = dt.toLocaleString();
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "btn btn-ghost note-delete-btn";
+        delBtn.textContent = "Delete";
+        delBtn.addEventListener("click", function() {
+          deleteNote(note.id);
+        });
+
+        metaRow.appendChild(tsSpan);
+        metaRow.appendChild(delBtn);
+
+        card.appendChild(textDiv);
+        card.appendChild(metaRow);
+
+        listEl.appendChild(card);
+      });
+    }
+
+    window.addEventListener("load", initDashboard);
+function openRoutesMap() {
+  if (!currentFileId) {
+    updateStatus("Select a file first, then click Map.", "error");
+    return;
+  }
+  if (!WEBAPP_URL) {
+    updateStatus("Web app URL not ready. Reload once.", "error");
+    return;
+  }
+
+  const mapUrl = WEBAPP_URL + "?page=map&fileId=" + encodeURIComponent(currentFileId);
+  window.open(mapUrl, "_blank");
+}
+
+
+  </script>
+</body>
+</html>

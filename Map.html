@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Arkoun Routes Map</title>
+
+    <!-- Leaflet (keep simple - no integrity/crossorigin to avoid sanitizer issues) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+      :root {
+        --shadow: 0 18px 55px rgba(0, 0, 0, 0.24);
+
+        --text: rgba(255, 255, 255, 0.92);
+        --text-dim: rgba(255, 255, 255, 0.65);
+
+        --glass: rgba(255, 255, 255, 0.12);
+        --glass-border: rgba(255, 255, 255, 0.20);
+
+        --btn: rgba(255, 255, 255, 0.14);
+        --btn-h: rgba(255, 255, 255, 0.20);
+
+        --chip: rgba(255,255,255,0.12);
+
+        --topbar-bg: rgba(0,0,0,0.22);
+        --sidebar-head: rgba(0,0,0,0.18);
+
+        --ok: #22c55e;
+        --warn: #f59e0b;
+        --err: #ef4444;
+      }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+        background: #0b1220;
+      }
+
+      #map {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        background: #dfe7ef;
+      }
+
+      .topbar {
+        position: fixed;
+        left: 16px;
+        top: 14px;
+        z-index: 9999;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 18px;
+        background: var(--topbar-bg);
+        border: 1px solid rgba(255,255,255,0.16);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow: var(--shadow);
+        color: var(--text);
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        background: var(--btn);
+        border: 1px solid rgba(255,255,255,0.14);
+        color: var(--text);
+        cursor: pointer;
+        user-select: none;
+        font-weight: 800;
+        font-size: 13px;
+        line-height: 1;
+        transition: transform 120ms ease, background 120ms ease;
+        white-space: nowrap;
+      }
+      .btn:hover { background: var(--btn-h); transform: translateY(-1px); }
+      .btn:active { transform: translateY(0px); }
+
+      .pill {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.12);
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 800;
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        white-space: nowrap;
+      }
+
+      .dot {
+        width: 9px; height: 9px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.6);
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.12);
+      }
+      .dot.ok   { background: var(--ok);   box-shadow: 0 0 0 3px rgba(34,197,94,0.18); }
+      .dot.warn { background: var(--warn); box-shadow: 0 0 0 3px rgba(245,158,11,0.18); }
+      .dot.err  { background: var(--err);  box-shadow: 0 0 0 3px rgba(239,68,68,0.18); }
+
+      .sidebar {
+        position: fixed;
+        right: 16px;
+        top: 14px;
+        bottom: 16px;
+        width: min(440px, calc(100vw - 32px));
+        z-index: 9998;
+        border-radius: 22px;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        transform: translateX(0);
+        transition: transform 200ms ease;
+      }
+      .sidebar.closed { transform: translateX(calc(100% + 26px)); }
+
+      .sidebarHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 14px 10px 16px;
+        background: var(--sidebar-head);
+        border-bottom: 1px solid rgba(255,255,255,0.14);
+      }
+      .sidebarHeader .title { display: flex; flex-direction: column; gap: 4px; }
+      .sidebarHeader h3 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: 1.2px;
+        font-weight: 900;
+        color: var(--text);
+      }
+      .sidebarHeader .hint {
+        font-size: 12px;
+        color: var(--text-dim);
+        font-weight: 650;
+      }
+
+      .iconBtn {
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.14);
+        border: 1px solid rgba(255,255,255,0.14);
+        cursor: pointer;
+        transition: background 120ms ease, transform 120ms ease;
+        color: var(--text);
+        font-weight: 900;
+        user-select: none;
+      }
+      .iconBtn:hover { background: rgba(255,255,255,0.20); transform: translateY(-1px); }
+      .iconBtn:active { transform: translateY(0px); }
+
+      .ledger {
+        padding: 12px;
+        overflow: auto;
+        height: calc(100% - 66px);
+      }
+
+      .routeCard {
+        border-radius: 16px;
+        background: rgba(0,0,0,0.18);
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 12px;
+        margin: 10px 2px;
+        cursor: pointer;
+        transition: transform 120ms ease, background 120ms ease, border 120ms ease;
+      }
+      .routeCard:hover {
+        transform: translateY(-1px);
+        background: rgba(0,0,0,0.22);
+        border: 1px solid rgba(255,255,255,0.18);
+      }
+      .routeCard.active {
+        outline: 2px solid rgba(255,255,255,0.22);
+        background: rgba(0,0,0,0.26);
+      }
+
+      .routeTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .routeId {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 900;
+        color: var(--text);
+        letter-spacing: 0.6px;
+      }
+      .swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        box-shadow: 0 0 0 4px rgba(255,255,255,0.10);
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      .chip {
+        padding: 6px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--text);
+        background: var(--chip);
+        border: 1px solid rgba(255,255,255,0.12);
+        white-space: nowrap;
+      }
+
+      .stops {
+        margin-top: 10px;
+        display: grid;
+        gap: 6px;
+      }
+      .stopRow {
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        gap: 10px;
+        align-items: start;
+        color: var(--text-dim);
+        font-weight: 650;
+        font-size: 12.5px;
+        line-height: 1.25;
+      }
+      .stopRow.stopJump { cursor: pointer; }
+      .stopRow.stopJump:hover { filter: brightness(1.12); }
+
+      .stopIdx {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.12);
+        color: var(--text);
+        font-weight: 900;
+        font-size: 12px;
+      }
+
+      .openSidebarFab {
+        position: fixed;
+        right: 18px;
+        top: 18px;
+        z-index: 9999;
+        display: none;
+      }
+      .openSidebarFab.show { display: block; }
+
+      .leaflet-control-attribution { font-size: 11px !important; }
+
+      /* ✅ Force zoom buttons bottom-left */
+      .leaflet-control-zoom {
+        position: fixed !important;
+        left: 14px !important;
+        bottom: 14px !important;
+        top: auto !important;
+        right: auto !important;
+        z-index: 9999 !important;
+      }
+
+      @media (max-width: 760px) {
+        .topbar {
+          left: 10px;
+          right: 10px;
+          width: calc(100% - 20px);
+          flex-wrap: wrap;
+          justify-content: space-between;
+          gap: 8px;
+        }
+        .sidebar {
+          right: 10px;
+          left: 10px;
+          width: auto;
+          top: 70px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <div class="topbar">
+      <div class="btn" id="btnReload">⟳ Reload</div>
+      <div class="btn" id="btnShowAll">👁 Show All</div>
+      <div class="btn" id="btnFit">⤢ Fit</div>
+      <div class="btn" id="btnToggleLedger">☰ Ledger</div>
+
+      <div class="pill" title="Routes count">
+        <span class="dot" id="dotRoutes"></span>
+        <span id="lblRoutes">Routes: —</span>
+      </div>
+
+      <div class="pill" title="File ID loaded">
+        <span>File:</span>
+        <span id="lblFile">—</span>
+      </div>
+
+      <div class="pill" title="Status">
+        <span class="dot warn" id="dotStatus"></span>
+        <span id="lblStatus">Loading…</span>
+      </div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+      <div class="sidebarHeader">
+        <div class="title">
+          <h3>ROUTE LEDGER</h3>
+          <div class="hint" id="ledgerHint">Tap a route to focus & highlight.</div>
+        </div>
+        <div class="iconBtn" id="btnCloseSidebar" title="Close">×</div>
+      </div>
+      <div class="ledger" id="ledger"></div>
+    </div>
+
+    <div class="openSidebarFab" id="openSidebarFab">
+      <div class="btn" id="btnOpenSidebar">☰ Ledger</div>
+    </div>
+
+    <!-- Debug Console -->
+    <div id="dbgWrap" style="
+      position:fixed; left:14px; bottom:60px; z-index:10000;
+      width:min(520px, calc(100vw - 28px));
+      max-height:40vh; overflow:auto;
+      padding:10px 10px 8px;
+      border-radius:14px;
+      background: rgba(0,0,0,0.55);
+      border:1px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(10px);
+      color: rgba(255,255,255,0.92);
+      font: 12px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono','Courier New', monospace;
+      box-shadow: 0 18px 55px rgba(0,0,0,0.35);
+      display:block;
+    ">
+      <div style="display:flex; gap:8px; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <div style="font-weight:900; letter-spacing:.5px;">DEBUG</div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="dbgCopy" style="cursor:pointer;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.14);color:#fff;padding:6px 10px;font-weight:800;">Copy</button>
+          <button id="dbgClear" style="cursor:pointer;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.14);color:#fff;padding:6px 10px;font-weight:800;">Clear</button>
+          <button id="dbgHide" style="cursor:pointer;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.14);color:#fff;padding:6px 10px;font-weight:900;">×</button>
+        </div>
+      </div>
+      <div id="dbg" style="white-space:pre-wrap;"></div>
+    </div>
+
+    <script>
+      /*<![CDATA[*/
+      /*********************
+       * DEBUG CONSOLE
+       *********************/
+      const dbgEl = () => document.getElementById("dbg");
+      const dbgWrap = () => document.getElementById("dbgWrap");
+      function dbg(...args) {
+        try {
+          const line = args.map(a => {
+            if (a instanceof Error) return `Error: ${a.message}\n${a.stack || ""}`;
+            if (typeof a === "object") return JSON.stringify(a, null, 2);
+            return String(a);
+          }).join(" ");
+          const ts = new Date().toLocaleTimeString();
+          dbgEl().textContent += `[${ts}] ${line}\n`;
+          dbgWrap().scrollTop = dbgWrap().scrollHeight;
+          console.log(...args);
+        } catch (e) {
+          console.log("dbg failed", e, ...args);
+        }
+      }
+
+      window.addEventListener("error", (ev) => dbg("WINDOW_ERROR:", ev.message, ev.filename, ev.lineno));
+      window.addEventListener("unhandledrejection", (ev) => dbg("UNHANDLED_REJECTION:", ev.reason));
+
+      window.addEventListener("load", () => {
+        document.getElementById("dbgClear").onclick = () => (dbgEl().textContent = "");
+        document.getElementById("dbgHide").onclick = () => (dbgWrap().style.display = "none");
+        document.getElementById("dbgCopy").onclick = async () => {
+          const text = dbgEl().textContent;
+          try { await navigator.clipboard.writeText(text); dbg("Copied debug to clipboard"); }
+          catch (e) { dbg("Copy failed:", e); }
+        };
+      });
+
+      /*********************
+       * PARAMS RESOLUTION
+       *********************/
+      let fileId = "";
+
+      function resolveFileIdAndThen(cb) {
+        try {
+          google.script.url.getLocation(function(loc) {
+            const p = (loc && loc.parameter) ? loc.parameter : {};
+            fileId =
+              p.fileId ||
+              p.fileid ||
+              p.sheetId ||
+              p.opsSheetId ||
+              p.ops_sheet_id ||
+              p.file ||
+              p.id ||
+              "";
+            dbg("Resolved location params:", p);
+            dbg("Resolved fileId:", fileId || "(empty)");
+            cb();
+          });
+        } catch (e) {
+          dbg("google.script.url.getLocation failed:", e);
+          cb();
+        }
+      }
+
+      /*********************
+       * UI HELPERS
+       *********************/
+      const sidebar = document.getElementById("sidebar");
+      const openFab = document.getElementById("openSidebarFab");
+
+      const dotStatus = document.getElementById("dotStatus");
+      const lblStatus = document.getElementById("lblStatus");
+      const dotRoutes = document.getElementById("dotRoutes");
+      const lblRoutes = document.getElementById("lblRoutes");
+      const lblFile = document.getElementById("lblFile");
+
+      function setStatus(type, text) {
+        lblStatus.textContent = text;
+        dotStatus.classList.remove("ok","warn","err");
+        dotStatus.classList.add(type);
+      }
+
+      function setRoutesCount(n) {
+        lblRoutes.textContent = "Routes: " + (n ?? "—");
+        dotRoutes.classList.remove("ok","warn","err");
+        dotRoutes.classList.add(n > 0 ? "ok" : "warn");
+      }
+
+      function closeSidebar() {
+        sidebar.classList.add("closed");
+        openFab.classList.add("show");
+      }
+      function openSidebar() {
+        sidebar.classList.remove("closed");
+        openFab.classList.remove("show");
+      }
+
+      document.getElementById("btnCloseSidebar").onclick = closeSidebar;
+      document.getElementById("btnOpenSidebar").onclick = openSidebar;
+      document.getElementById("btnToggleLedger").onclick = () => {
+        if (sidebar.classList.contains("closed")) openSidebar();
+        else closeSidebar();
+      };
+
+      /*********************
+       * MAP SETUP
+       *********************/
+      const map = L.map("map", { zoomControl: false, preferCanvas: true });
+      L.control.zoom({ position: "bottomleft" }).addTo(map);
+
+      L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+        { attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 20 }
+      ).addTo(map);
+
+      // Order matters: later layers render on top
+      const hubLayer   = L.layerGroup().addTo(map);
+      const routesLayer = L.layerGroup().addTo(map);
+      const stopsLayer  = L.layerGroup().addTo(map);
+
+      let DATA = null;
+      let activeRouteId = null;
+
+      const ROUTE_BASE_WEIGHT = 4;
+      const ROUTE_ACTIVE_WEIGHT = 7;
+      const ROUTE_DIM_OPACITY = 0.12;
+      const ROUTE_NORMAL_OPACITY = 0.72;
+      const ROUTE_ACTIVE_OPACITY = 0.97;
+
+      const routePolylines = new Map();
+      let hubMarker = null;
+
+      // ✅ stopMarkersByRoute: routeId -> [marker1, marker2, ...] in stop order
+      const stopMarkersByRoute = new Map();
+
+      // ✅ Road routing via OSRM (free, no API key). This draws “road-following” routes (not straight lines).
+      const OSRM_BASE = "https://router.project-osrm.org";
+
+      // OSRM limits waypoints. We keep a safe max per request and stitch segments if needed.
+      const MAX_POINTS_PER_OSRM_REQUEST = 24; // includes hub + stops chunk
+
+      // tiny concurrency limiter so we don’t spam OSRM and freeze UI
+      const MAX_CONCURRENT_ROUTES = 3;
+      let _activeFetches = 0;
+      const _fetchQueue = [];
+
+      function enqueueFetch(fn) {
+        return new Promise((resolve, reject) => {
+          _fetchQueue.push({ fn, resolve, reject });
+          pumpFetchQueue();
+        });
+      }
+      function pumpFetchQueue() {
+        while (_activeFetches < MAX_CONCURRENT_ROUTES && _fetchQueue.length) {
+          const job = _fetchQueue.shift();
+          _activeFetches++;
+          job.fn().then(job.resolve).catch(job.reject).finally(() => {
+            _activeFetches--;
+            pumpFetchQueue();
+          });
+        }
+      }
+
+      function zoomWeightFactor() {
+        const z = map.getZoom();
+        if (z <= 10) return 0.85;
+        if (z <= 12) return 0.95;
+        if (z <= 14) return 1.05;
+        if (z <= 16) return 1.15;
+        return 1.25;
+      }
+
+      function applyRouteWeights() {
+        const f = zoomWeightFactor();
+        routePolylines.forEach((pl, routeId) => {
+          const isActive = activeRouteId && routeId === activeRouteId;
+          const w = (isActive ? ROUTE_ACTIVE_WEIGHT : ROUTE_BASE_WEIGHT) * f;
+          pl.setStyle({ weight: w });
+        });
+      }
+      map.on("zoomend", applyRouteWeights);
+
+      /*********************
+       * HELPERS
+       *********************/
+      function pickColor(i) {
+        const palette = ["#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#a855f7", "#14b8a6", "#f97316", "#e11d48"];
+        return palette[i % palette.length];
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, (m) => ({
+          "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+        }[m]));
+      }
+
+      function dedupeLatLngs(latlngs) {
+        const out = [];
+        let last = null;
+        for (const p of latlngs) {
+          if (!p || !isFinite(p[0]) || !isFinite(p[1])) continue;
+          const key = p[0].toFixed(6) + "," + p[1].toFixed(6);
+          if (key === last) continue;
+          out.push(p);
+          last = key;
+        }
+        return out;
+      }
+
+      function normalizeBackendToData_(res) {
+        // master code returns: { hub, routes:[...] } OR delivery.gs returns {ok,hub,routes:{...}}
+        if (!res) return { hub: null, routes: [] };
+
+        // delivery.gs style
+        if (res.ok === true && res.routes && !Array.isArray(res.routes)) {
+          const hub = res.hub || { lat: 19.10885, lng: 72.8662, label: "Arkoun Dispatch Hub" };
+          const routeIds = Object.keys(res.routes || {}).sort();
+          const routesArr = routeIds.map((rid, idx) => {
+            const stops = (res.routes[rid] || []).map(s => ({
+              lat: s.lat, lng: s.lng,
+              pincode: s.pincode || "",
+              name: s.customer || ""
+            }));
+            return { id: rid, color: pickColor(idx), stops };
+          });
+          return { hub, routes: routesArr };
+        }
+
+        // already normalized
+        if (Array.isArray(res.routes)) return res;
+
+        return { hub: res.hub || null, routes: [] };
+      }
+
+      /*********************
+       * OSRM ROAD ROUTING (GMAPS-LIKE)
+       *********************/
+      // polyline6 decoder (OSRM geometry = polyline6)
+      function decodePolyline6(str) {
+        let index = 0, lat = 0, lng = 0;
+        const coordinates = [];
+        const factor = 1e6;
+
+        while (index < str.length) {
+          let b, shift = 0, result = 0;
+          do {
+            b = str.charCodeAt(index++) - 63;
+            result |= (b & 0x1f) << shift;
+            shift += 5;
+          } while (b >= 0x20);
+          const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+          lat += dlat;
+
+          shift = 0; result = 0;
+          do {
+            b = str.charCodeAt(index++) - 63;
+            result |= (b & 0x1f) << shift;
+            shift += 5;
+          } while (b >= 0x20);
+          const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+          lng += dlng;
+
+          coordinates.push([lat / factor, lng / factor]);
+        }
+        return coordinates;
+      }
+
+      // build OSRM route for a list of points [{lat,lng},...]
+      async function osrmRoute(points) {
+        const coords = points.map(p => `${p.lng},${p.lat}`).join(";");
+        const url = `${OSRM_BASE}/route/v1/driving/${coords}?overview=full&geometries=polyline6&steps=false&alternatives=false`;
+        const res = await fetch(url, { method: "GET" });
+        if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
+        const json = await res.json();
+        if (!json || json.code !== "Ok" || !json.routes || !json.routes[0] || !json.routes[0].geometry) {
+          throw new Error("OSRM bad response");
+        }
+        const line = decodePolyline6(json.routes[0].geometry);
+        return dedupeLatLngs(line);
+      }
+
+      // if too many points, stitch segments
+      async function buildRoadLineForPoints(allPoints) {
+        const pts = allPoints.filter(p => p && isFinite(p.lat) && isFinite(p.lng));
+        if (pts.length < 2) return [];
+
+        let out = [];
+        let i = 0;
+        while (i < pts.length - 1) {
+          const chunk = pts.slice(i, Math.min(i + MAX_POINTS_PER_OSRM_REQUEST, pts.length));
+          if (chunk.length < 2) break;
+
+          const seg = await osrmRoute(chunk);
+          if (seg.length) {
+            if (out.length && seg.length) {
+              const last = out[out.length - 1];
+              const first = seg[0];
+              if (last[0].toFixed(6) === first[0].toFixed(6) && last[1].toFixed(6) === first[1].toFixed(6)) {
+                out = out.concat(seg.slice(1));
+              } else {
+                out = out.concat(seg);
+              }
+            } else {
+              out = out.concat(seg);
+            }
+          }
+
+          i += (MAX_POINTS_PER_OSRM_REQUEST - 1);
+        }
+        return dedupeLatLngs(out);
+      }
+
+      /*********************
+       * DATA LOADING
+       *********************/
+      function load() {
+        dbg("---- LOAD() called ----");
+
+        if (!fileId) {
+          dbg("❌ fileId missing -> not calling backend");
+          setStatus("err", "Missing fileId. Open as ?page=map&fileId=OPS_SHEET_ID");
+          lblFile.textContent = "—";
+          setRoutesCount(0);
+          return;
+        }
+
+        dbg("✅ fileId detected:", fileId);
+        lblFile.textContent = fileId.slice(0, 10) + "…";
+        setStatus("warn", "Loading… (reading Delivery Routes / _Route Map Data)");
+
+        const t = setTimeout(() => {
+          dbg("⚠️ Still waiting for backend after 10s...");
+          setStatus("warn", "Still loading… (backend slow)");
+        }, 10000);
+
+        google.script.run
+          .withSuccessHandler(async (res) => {
+            clearTimeout(t);
+            dbg("✅ SuccessHandler fired. Raw response:", res);
+
+            DATA = normalizeBackendToData_(res);
+            dbg("✅ Normalized DATA:", DATA);
+
+            await renderAll(); // async now
+            setStatus("ok", "Done");
+          })
+          .withFailureHandler((err) => {
+            clearTimeout(t);
+            dbg("❌ FailureHandler fired:", err);
+            const msg = (err && err.message) ? err.message : String(err);
+            setStatus("err", "Backend error: " + msg);
+            setRoutesCount(0);
+          })
+          .getMapDataForFile(fileId);
+      }
+
+      document.getElementById("btnReload").onclick = () => resolveFileIdAndThen(load);
+
+      /*********************
+       * RENDER
+       *********************/
+      function clearLayers() {
+        hubLayer.clearLayers();
+        routesLayer.clearLayers();
+        stopsLayer.clearLayers();
+        routePolylines.clear();
+        stopMarkersByRoute.clear();
+        hubMarker = null;
+        activeRouteId = null;
+      }
+
+      async function renderAll() {
+        clearLayers();
+
+        if (!DATA || !Array.isArray(DATA.routes)) {
+          dbg("❌ DATA missing or routes not array:", DATA);
+          setStatus("err", "No routes data returned");
+          setRoutesCount(0);
+          return;
+        }
+
+        setRoutesCount(DATA.routes.length);
+
+        let fallbackCenter = [19.0760, 72.8777];
+        if (DATA.hub && isFinite(DATA.hub.lat) && isFinite(DATA.hub.lng)) {
+          fallbackCenter = [DATA.hub.lat, DATA.hub.lng];
+        }
+        map.setView(fallbackCenter, 11);
+
+        // HUB
+        if (DATA.hub && isFinite(DATA.hub.lat) && isFinite(DATA.hub.lng)) {
+          hubMarker = L.marker([DATA.hub.lat, DATA.hub.lng], { zIndexOffset: 1000 }).addTo(hubLayer);
+
+          const hubLabel = DATA.hub.label || "Dispatch Hub";
+          hubMarker.bindPopup(`<b>HUB</b><br/>${escapeHtml(hubLabel)}`);
+
+          const hubDiv = L.divIcon({
+            className: "",
+            html:
+              `<div style="transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <div style="padding:6px 10px;border-radius:999px;background: rgba(34,197,94,0.95);color:#0b1220;font-weight:900;font-size:12px;box-shadow: 0 10px 26px rgba(0,0,0,0.28);">HUB</div>
+                <div style="width:14px;height:14px;border-radius:999px;background: rgba(34,197,94,0.95);box-shadow: 0 0 0 6px rgba(34,197,94,0.18);"></div>
+              </div>`
+          });
+          hubMarker.setIcon(hubDiv);
+        }
+
+        renderLedger(DATA.routes);
+
+        const hub = (DATA.hub && isFinite(DATA.hub.lat) && isFinite(DATA.hub.lng)) ? DATA.hub : null;
+
+        let done = 0;
+        let failed = 0;
+
+        setStatus("warn", `Plotting roads… 0/${DATA.routes.length}`);
+
+        const tasks = DATA.routes.map((r, idx) => enqueueFetch(async () => {
+          const routeId = r.id || r.routeId || r.RouteID || "R?";
+          const color = r.color || pickColor(idx);
+          const stops = Array.isArray(r.stops) ? r.stops : [];
+
+          stopMarkersByRoute.set(routeId, []);
+
+          // ✅ Stop markers (always)
+          stops.forEach((s, sidx) => {
+            if (!isFinite(s.lat) || !isFinite(s.lng)) return;
+
+            const idx1 = sidx + 1;
+
+            const m = L.circleMarker([s.lat, s.lng], {
+              radius: 7.5,
+              color: "rgba(0,0,0,0.55)",
+              weight: 2.2,
+              fillColor: color,
+              fillOpacity: 1.0,
+              opacity: 1.0
+            }).addTo(stopsLayer);
+
+            const name = (s.name || s.customer || s.label || ("Stop " + idx1));
+            const pin = (s.pincode || s.pin || "");
+            m.bindPopup(
+              `<b>${escapeHtml(routeId)} • Stop ${idx1}</b><br/>${escapeHtml(name)}${pin ? " — " + escapeHtml(pin) : ""}`
+            );
+
+            stopMarkersByRoute.get(routeId).push(m);
+
+            // click marker => focus route (no fit)
+            m.on("click", () => focusRoute(routeId, false));
+
+            // ensure visible above polylines
+            if (m.bringToFront) m.bringToFront();
+          });
+
+          // ✅ Build points: HUB -> stops (IMPORTANT: your previous code missed this and crashed)
+          const points = [];
+          if (hub) points.push({ lat: hub.lat, lng: hub.lng });
+          stops.forEach(s => {
+            if (isFinite(s.lat) && isFinite(s.lng)) points.push({ lat: s.lat, lng: s.lng });
+          });
+
+          if (points.length < 2) {
+            dbg("Route has <2 points, skipping:", routeId);
+            failed++;
+            done++;
+            setStatus("warn", `Plotting roads… ${done}/${DATA.routes.length} (failed ${failed})`);
+            return;
+          }
+
+          // road-following polyline from OSRM
+          let roadLatLngs = [];
+          try {
+            roadLatLngs = await buildRoadLineForPoints(points);
+          } catch (e) {
+            dbg("OSRM route failed for", routeId, e);
+            roadLatLngs = [];
+          }
+
+          // fallback: straight line segments
+          if (!roadLatLngs || roadLatLngs.length < 2) {
+            failed++;
+            roadLatLngs = dedupeLatLngs(points.map(p => [p.lat, p.lng]));
+          }
+
+          const pl = L.polyline(roadLatLngs, {
+            color,
+            weight: ROUTE_BASE_WEIGHT * zoomWeightFactor(),
+            opacity: ROUTE_NORMAL_OPACITY,
+            lineCap: "round",
+            lineJoin: "round"
+          }).addTo(routesLayer);
+
+          pl.on("click", () => focusRoute(routeId, true));
+          routePolylines.set(routeId, pl);
+
+          done++;
+          setStatus("warn", `Plotting roads… ${done}/${DATA.routes.length}` + (failed ? ` (failed ${failed})` : ""));
+
+          // keep stops above routes after drawing
+          stopsLayer.eachLayer(l => l.bringToFront && l.bringToFront());
+        }));
+
+        await Promise.all(tasks);
+
+        setStatus(failed ? "warn" : "ok", failed ? `Done (some routes fell back: ${failed})` : "Done");
+        applyRouteWeights();
+        showAll(true);
+      }
+
+      function renderLedger(routes) {
+        const ledger = document.getElementById("ledger");
+        ledger.innerHTML = "";
+
+        const sorted = [...routes].sort((a,b) =>
+          String(a.id||a.routeId||"").localeCompare(String(b.id||b.routeId||""))
+        );
+
+        sorted.forEach((r, idx) => {
+          const routeId = r.id || r.routeId || r.RouteID || "R?";
+          const color = r.color || pickColor(idx);
+          const stops = Array.isArray(r.stops) ? r.stops : [];
+
+          const card = document.createElement("div");
+          card.className = "routeCard";
+          card.dataset.routeId = routeId;
+
+          const stopRows = stops.slice(0, 6).map((s, i) => {
+            const idx1 = i + 1;
+            const name = (s.name || s.customer || s.label || ("Stop " + idx1));
+            const pin = (s.pincode || s.pin || "");
+            return (
+              `<div class="stopRow stopJump" data-route="${escapeHtml(routeId)}" data-idx="${idx1}">
+                <div class="stopIdx" title="Go to stop">${idx1}</div>
+                <div>${escapeHtml(name)}${pin ? ` <span style="opacity:.75"> ${escapeHtml(pin)}</span>` : ""}</div>
+              </div>`
+            );
+          }).join("");
+
+          const more = (stops.length > 6)
+            ? `<div style="margin-top:8px;color:rgba(255,255,255,0.6);font-weight:700;font-size:12px;">+ ${stops.length-6} more stops…</div>`
+            : "";
+
+          card.innerHTML =
+            `<div class="routeTop">
+              <div class="routeId">
+                <div class="swatch" style="background:${color}"></div>
+                <div>${escapeHtml(routeId)}</div>
+              </div>
+              <div class="chips">
+                <div class="chip">${escapeHtml(String(stops.length))} stops</div>
+              </div>
+            </div>
+            <div class="stops">
+              ${stopRows || `<div style="color:rgba(255,255,255,0.65);font-weight:700">No stops found</div>`}
+              ${more}
+            </div>`;
+
+          card.onclick = () => focusRoute(routeId, true);
+          ledger.appendChild(card);
+        });
+      }
+
+      /*********************
+       * STOP JUMP (CLICK NUMBER => GO TO STOP)
+       *********************/
+      function goToStop(routeId, idx1) {
+        // focus route (no fit yet)
+        focusRoute(routeId, false);
+
+        const arr = stopMarkersByRoute.get(routeId) || [];
+        const m = arr[idx1 - 1];
+        if (!m) {
+          dbg("Stop marker not found for", routeId, idx1);
+          return;
+        }
+
+        const ll = m.getLatLng();
+        map.flyTo(ll, Math.max(map.getZoom(), 15), { animate: true, duration: 0.6 });
+
+        setTimeout(() => {
+          try { m.bringToFront && m.bringToFront(); } catch(e){}
+          try { m.openPopup && m.openPopup(); } catch(e){}
+        }, 260);
+      }
+
+      // Event delegation: click stop row in ledger
+      document.addEventListener("click", (ev) => {
+        const row = ev.target.closest(".stopJump");
+        if (!row) return;
+
+        // prevent route card click also firing
+        ev.stopPropagation();
+
+        const routeId = row.dataset.route;
+        const idx1 = Number(row.dataset.idx || 0);
+        if (!routeId || !idx1) return;
+        goToStop(routeId, idx1);
+      }, true);
+
+      /*********************
+       * FIT / FOCUS
+       *********************/
+      function boundsForRoute(routeId) {
+        const pl = routePolylines.get(routeId);
+        if (!pl) return null;
+        return pl.getBounds();
+      }
+
+      function boundsForAll() {
+        const group = L.featureGroup([]);
+        if (hubMarker) group.addLayer(hubMarker);
+        routePolylines.forEach(pl => group.addLayer(pl));
+        if (group.getLayers().length === 0) return null;
+        return group.getBounds();
+      }
+
+      function fitBoundsSmart(b) {
+        if (!b) return;
+        map.fitBounds(b, {
+          paddingTopLeft: [20, 70],
+          paddingBottomRight: [460, 30],
+          maxZoom: 16
+        });
+      }
+
+      function setActiveCard(routeId) {
+        const cards = document.querySelectorAll(".routeCard");
+        cards.forEach(c => c.classList.toggle("active", c.dataset.routeId === routeId));
+      }
+
+      function focusRoute(routeId, doFit) {
+        activeRouteId = routeId;
+
+        routePolylines.forEach((pl, id) => {
+          const active = (id === routeId);
+          pl.setStyle({ opacity: active ? ROUTE_ACTIVE_OPACITY : ROUTE_DIM_OPACITY });
+        });
+
+        applyRouteWeights();
+        setActiveCard(routeId);
+        document.getElementById("ledgerHint").textContent = `Focused: ${routeId}`;
+
+        if (doFit) fitBoundsSmart(boundsForRoute(routeId));
+      }
+
+      function showAll(doFit) {
+        activeRouteId = null;
+
+        routePolylines.forEach((pl) => {
+          pl.setStyle({ opacity: ROUTE_NORMAL_OPACITY });
+        });
+
+        applyRouteWeights();
+        setActiveCard(null);
+        document.getElementById("ledgerHint").textContent = "Tap a route to focus & highlight.";
+
+        if (doFit) fitBoundsSmart(boundsForAll());
+      }
+
+      document.getElementById("btnShowAll").onclick = () => showAll(true);
+      document.getElementById("btnFit").onclick = () => {
+        if (activeRouteId) fitBoundsSmart(boundsForRoute(activeRouteId));
+        else fitBoundsSmart(boundsForAll());
+      };
+
+      /*********************
+       * INIT
+       *********************/
+      if (window.matchMedia && window.matchMedia("(max-width: 760px)").matches) {
+        closeSidebar();
+      }
+
+      resolveFileIdAndThen(load);
+      /*]]>*/
+    </script>
+  </body>
+</html>
