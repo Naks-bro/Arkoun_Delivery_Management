@@ -1,1 +1,4 @@
 *.gs linguist-language=Google-Apps-Script
+*.gs linguist-language=Google-Apps-Script
+*.gs linguist-vendored=false
+*.gs linguist-generated=false
